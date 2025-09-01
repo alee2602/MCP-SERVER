@@ -93,14 +93,20 @@ class PlaylistEngine:
         
         return self._format_songs_output(selected)
     
-    def find_similar_songs(self, reference_song: str, artist: Optional[str] = None, 
-                        count: int = 5) -> List[Tuple[Dict, float]]:
+    def find_similar_songs(self, reference_song: str, artist: Optional[str] = None, count: int = 5) -> List[Tuple[Dict, float]]:
         """Find songs similar to a reference song using cosine similarity"""
         
-        # Find the reference song
+        # First try exact match
         query_df = self.df[
             self.df['track_name'].str.contains(reference_song, case=False, na=False)
         ]
+        
+        # If no results and song name is long, try with first part only
+        if query_df.empty and len(reference_song) > 20:
+            short_name = reference_song.split(' - ')[0].split(' (')[0][:15]
+            query_df = self.df[
+                self.df['track_name'].str.contains(short_name, case=False, na=False)
+            ]
         
         if artist:
             query_df = query_df[
@@ -130,10 +136,20 @@ class PlaylistEngine:
         return results
     
     def analyze_song(self, song_name: str, artist: Optional[str] = None) -> Optional[Dict]:
+        """Get detailed analysis of a specific song"""
         
+        # First try exact match with the full song name
         query_df = self.df[
             self.df['track_name'].str.contains(song_name, case=False, na=False)
         ]
+        
+        # If no results and song name is long, try with first part only
+        if query_df.empty and len(song_name) > 20:
+            # Try with first 15 characters or until first special character
+            short_name = song_name.split(' - ')[0].split(' (')[0][:15]
+            query_df = self.df[
+                self.df['track_name'].str.contains(short_name, case=False, na=False)
+            ]
         
         if artist:
             query_df = query_df[
