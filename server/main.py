@@ -1,12 +1,14 @@
 from fastmcp import FastMCP
 from engine import PlaylistEngine
 from typing import List, Dict, Any
+import os
 
 # Initialize FastMCP server
-mcp = FastMCP("Playlist Curator MCP")
+mcp = FastMCP("mcp-playlist")
 
 # Initialize playlist engine
-playlist_engine = PlaylistEngine("spotify_songs.csv")
+dataset_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "spotify_songs.csv")
+playlist_engine = PlaylistEngine(dataset_path)
 
 @mcp.tool()
 def create_mood_playlist(mood: str, size: int = 10, genre: str = None, min_popularity: int = 0) -> str:
@@ -167,7 +169,7 @@ def get_dataset_stats() -> str:
     try:
         stats = playlist_engine.get_dataset_statistics()
         
-        result = f"📊 **Dataset Statistics**\n\n"
+        result = f"**Dataset Statistics**\n\n"
         result += f"• Total songs: {stats['total_songs']:,}\n"
         result += f"• Unique artists: {stats['unique_artists']:,}\n"
         result += f"• Unique albums: {stats['unique_albums']:,}\n"
