@@ -108,9 +108,9 @@ Claude Desktop Integration
 ## Other MCP Clients
 Configure with:
 
-**Protocol:** STDIO
-**Command:** python server/main.py
-**Working Directory:** Project root
+- **Protocol:** STDIO
+- **Command:** python server/main.py
+- **Working Directory:** Project root
 
 ## 📊 **API Examples**
 
@@ -184,8 +184,6 @@ Configure with:
   }
 }
 ```
-
-
 
 ## 🔍 **Troubleshooting**
 
