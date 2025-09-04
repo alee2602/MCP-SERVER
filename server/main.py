@@ -1,6 +1,6 @@
 from fastmcp import FastMCP
 from engine import PlaylistEngine
-from typing import List, Dict, Any
+from typing import List
 import os
 
 # Initialize FastMCP server
@@ -35,7 +35,7 @@ def create_mood_playlist(mood: str, size: int = 10, genre: str = None, min_popul
         if not playlist:
             return f"No songs found for mood '{mood}' with the specified filters."
         
-        result = f"🎵 **{mood.title()} Mood Playlist** ({len(playlist)} songs)\n\n"
+        result = f"**{mood.title()} Mood Playlist** ({len(playlist)} songs)\n\n"
         for i, song in enumerate(playlist, 1):
             result += f"{i}. **{song['name']}** by {song['artists']}\n"
             result += f"   Genre: {song.get('genre', 'Unknown')} | "
@@ -70,7 +70,7 @@ def find_similar_songs(song_name: str, artist: str = None, count: int = 5) -> st
         if not similar_songs:
             return f"Song '{song_name}' not found in dataset."
         
-        result = f"🎯 **Songs similar to '{song_name}'**\n\n"
+        result = f"**Songs similar to '{song_name}'**\n\n"
         for i, (song, similarity) in enumerate(similar_songs, 1):
             result += f"{i}. **{song['track_name']}** by {song['track_artist']}\n"
             result += f"   Similarity: {similarity:.3f} | Genre: {song.get('playlist_genre', 'Unknown')}\n\n"
@@ -99,7 +99,7 @@ def analyze_song(song_name: str, artist: str = None) -> str:
             return f"Song '{song_name}' not found in dataset."
         
         song = analysis
-        result = f"🔍 **Analysis for '{song['track_name']}' by {song['track_artist']}**\n\n"
+        result = f"**Analysis for '{song['track_name']}' by {song['track_artist']}**\n\n"
         result += f"**Audio Features:**\n"
         result += f"• Energy: {song.get('energy', 0):.3f}/1.0\n"
         result += f"• Valence (Mood): {song.get('valence', 0):.3f}/1.0\n"

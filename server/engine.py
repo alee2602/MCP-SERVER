@@ -89,7 +89,7 @@ class PlaylistEngine:
         if len(filtered_df) < size:
             selected = filtered_df.copy()
         else:
-            selected = filtered_df.sample(n=size, random_state=42)
+            selected = filtered_df.sample(n=size, random_state=16)
         
         return self._format_songs_output(selected)
     
