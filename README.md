@@ -27,12 +27,14 @@ The server analyzes multiple sophisticated audio characteristics:
 
 ## 🏗️ **Architecture**
 
+```bash
 ├── server/
 │   ├── main.py          # FastMCP server implementation
 │   └── engine.py        # Playlist curation engine with ML algorithms
 ├── spotify_songs.csv  # Spotify dataset (32K+ songs)
 ├── requirements.txt     # Python dependencies
 └── README.md           # This file
+```
 
 ## 📋 **Requirements**
 
