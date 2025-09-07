@@ -27,12 +27,14 @@ The server analyzes multiple sophisticated audio characteristics:
 
 ## 🏗️ **Architecture**
 
+```bash
 ├── server/
 │   ├── main.py          # FastMCP server implementation
 │   └── engine.py        # Playlist curation engine with ML algorithms
 ├── spotify_songs.csv  # Spotify dataset (32K+ songs)
 ├── requirements.txt     # Python dependencies
 └── README.md           # This file
+```
 
 ## 📋 **Requirements**
 
@@ -122,9 +124,9 @@ Claude Desktop Integration
 ## Other MCP Clients
 Configure with:
 
-**Protocol:** STDIO
-**Command:** python server/main.py
-**Working Directory:** Project root
+- **Protocol:** STDIO
+- **Command:** python server/main.py
+- **Working Directory:** Project root
 
 ## 📊 **API Examples**
 
@@ -139,7 +141,8 @@ Configure with:
       "mood": "energetic",
       "size": 15,
       "genre": "rock",
-      "min_popularity": 50
+      "min_popularity": 50,
+      "duration_minutes": 30
     }
   }
 }
@@ -198,8 +201,6 @@ Configure with:
   }
 }
 ```
-
-
 
 ## 🔍 **Troubleshooting**
 
