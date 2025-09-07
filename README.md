@@ -125,7 +125,8 @@ Configure with:
       "mood": "energetic",
       "size": 15,
       "genre": "rock",
-      "min_popularity": 50
+      "min_popularity": 50,
+      "duration_minutes": 30
     }
   }
 }
