@@ -1,6 +1,6 @@
 from fastmcp import FastMCP
 from engine import PlaylistEngine
-from typing import List
+from typing import List, Dict, Any, Optional, Tuple
 import os
 
 # Initialize FastMCP server
@@ -11,72 +11,151 @@ dataset_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "spotify
 playlist_engine = PlaylistEngine(dataset_path)
 
 @mcp.tool()
-def create_mood_playlist(mood: str, size: int = 10, genre: str = None, min_popularity: int = 0) -> str:
+def create_mood_playlist(mood: str, size: int = 10, genre: str = None, min_popularity: int = 0, duration_minutes: float = None,) -> str:
     """
-    Create a playlist based on mood and preferences
-    
-    Args:
-        mood: The mood for the playlist (happy, sad, energetic, calm, party, chill)
-        size: Number of songs in the playlist (default: 10)
-        genre: Optional genre filter (e.g., pop, rock, edm, rap, latin)
-        min_popularity: Minimum popularity score (0-100)
-    
-    Returns:
-        Formatted playlist as a string
-    """
+        Create a playlist based on mood and preferences.
+
+        You can specify EITHER:
+        - size (number of songs), OR
+        - duration_minutes (target total duration in minutes).
+
+        Optional filters:
+        - genre (e.g., pop, rock)
+        - min_popularity: 0-100
+        """
     try:
+        # --- Duration-based selection---
+        if duration_minutes and duration_minutes > 0:
+            # Grab a generous pool for better packing; engine will cap if dataset is small
+            pool_size = max(size * 5, 200)
+            pool = playlist_engine.create_mood_playlist(
+                mood=mood,
+                size=pool_size,
+                genre_filter=genre,          
+                min_popularity=min_popularity,
+            )
+
+            # Keep only tracks with valid durations
+            pool = [s for s in pool if (s.get("duration_minutes") or 0) > 0]
+            if not pool:
+                return f"No songs found for mood '{mood}' with the specified filters."
+
+            # shortest-first to approach the target time
+            pool.sort(key=lambda s: s["duration_minutes"])
+            target = float(duration_minutes)
+            total = 0.0
+            chosen: List[dict] = []
+            for song in pool:
+                d = float(song.get("duration_minutes", 0) or 0)
+                if d <= 0:
+                    continue
+                if total + d <= target + 0.5:   
+                    chosen.append(song)
+                    total += d
+                if total >= target - 0.5:
+                    break
+
+            if not chosen:
+                # If every track is longer than target, return the shortest one
+                chosen = [pool[0]]
+                total = float(pool[0]["duration_minutes"])
+
+            result = f"**{mood.title()} Mood Playlist** (~{total:.1f} min, target {target:.1f})\n\n"
+            for i, song in enumerate(chosen, 1):
+                result += f"{i}. **{song.get('name','Unknown')}** by {song.get('artists','Unknown Artist')}\n"
+                result += f"   Genre: {song.get('genre','Unknown')} | "
+                result += f"Popularity: {song.get('popularity','N/A')} | "
+                result += f"Energy: {song.get('energy', 0):.2f} | "
+                result += f"Duration: {song.get('duration_minutes', 0):.1f} min\n\n"
+            return result
+
+        # --- Size-based selection ---
         playlist = playlist_engine.create_mood_playlist(
             mood=mood,
             size=size,
-            genre_filter=genre,
+            genre_filter=genre,              
             min_popularity=min_popularity
         )
-        
         if not playlist:
             return f"No songs found for mood '{mood}' with the specified filters."
-        
+
         result = f"**{mood.title()} Mood Playlist** ({len(playlist)} songs)\n\n"
         for i, song in enumerate(playlist, 1):
-            result += f"{i}. **{song['name']}** by {song['artists']}\n"
-            result += f"   Genre: {song.get('genre', 'Unknown')} | "
-            result += f"Popularity: {song.get('popularity', 'N/A')} | "
-            result += f"Energy: {song.get('energy', 0):.2f}\n\n"
-        
+            result += f"{i}. **{song.get('name','Unknown')}** by {song.get('artists','Unknown Artist')}\n"
+            result += f"   Genre: {song.get('genre','Unknown')} | "
+            result += f"Popularity: {song.get('popularity','N/A')} | "
+            result += f"Energy: {song.get('energy', 0):.2f}"
+            if song.get("duration_minutes"):
+                result += f" | Duration: {song['duration_minutes']:.1f} min"
+            result += "\n\n"
         return result
-        
+
     except Exception as e:
         return f"Error creating mood playlist: {str(e)}"
 
 @mcp.tool()
 def find_similar_songs(song_name: str, artist: str = None, count: int = 5) -> str:
     """
-    Find songs similar to a reference song based on audio features
-    
-    Args:
-        song_name: Name of the reference song
-        artist: Artist name (optional, helps with accuracy)
-        count: Number of similar songs to return (default: 5)
-    
-    Returns:
-        List of similar songs with similarity scores
+    Find songs similar to a reference song based on audio features.
+    - Excludes the same track (same title+artist) and deduplicates versions.
     """
     try:
-        similar_songs = playlist_engine.find_similar_songs(
-            reference_song=song_name,
+        # Oversample to allow dedup without losing requested count
+        raw: List[Tuple[Dict[str, Any], float]] = playlist_engine.find_similar_songs(
+            reference_song=song_name,   # engine expects reference_song
             artist=artist,
-            count=count
+            count=max(count * 5, count + 10)
         )
-        
-        if not similar_songs:
+
+        if not raw:
             return f"Song '{song_name}' not found in dataset."
-        
+
+        # Normalize reference keys
+        ref_name = (song_name or "").strip().lower()
+        ref_artist = (artist or "").strip().lower()
+
+        def key_of(s: Dict[str, Any]) -> str:
+            name = (s.get("track_name") or s.get("name") or "").strip().lower()
+            art = (s.get("track_artist") or s.get("artists") or "").strip().lower()
+            return f"{name}||{art}"
+
+        def is_same_song(s: Dict[str, Any]) -> bool:
+            name = (s.get("track_name") or s.get("name") or "").strip().lower()
+            art = (s.get("track_artist") or s.get("artists") or "").strip().lower()
+            # exclude exact match on both title and (when provided) artist
+            if ref_artist:
+                return (name == ref_name) and (art == ref_artist)
+            return (name == ref_name)
+
+        seen: set[str] = set()
+        filtered: List[Tuple[Dict[str, Any], float]] = []
+
+        for item in raw:
+            s, sim = item if isinstance(item, tuple) else (item, 0.0)
+            if is_same_song(s):
+                # skip the reference track itself (often appears with sim=1.0)
+                continue
+            k = key_of(s)
+            if k in seen:
+                # skip duplicate versions of the exact same title+artist
+                continue
+            seen.add(k)
+            filtered.append((s, sim))
+            if len(filtered) >= count:
+                break
+
+        if not filtered:
+            return f"No similar songs found for '{song_name}'."
+
         result = f"**Songs similar to '{song_name}'**\n\n"
-        for i, (song, similarity) in enumerate(similar_songs, 1):
-            result += f"{i}. **{song['track_name']}** by {song['track_artist']}\n"
-            result += f"   Similarity: {similarity:.3f} | Genre: {song.get('playlist_genre', 'Unknown')}\n\n"
-        
+        for i, (song, similarity) in enumerate(filtered, 1):
+            name = song.get("track_name", "Unknown")
+            art = song.get("track_artist", "Unknown Artist")
+            genre = song.get("playlist_genre", "Unknown")
+            result += f"{i}. **{name}** by {art}\n"
+            result += f"   Similarity: {similarity:.3f} | Genre: {genre}\n\n"
         return result
-        
+
     except Exception as e:
         return f"Error finding similar songs: {str(e)}"
 
@@ -147,7 +226,7 @@ def create_genre_playlist(genres: List[str], size: int = 15, diversity: str = "m
         if not playlist:
             return f"No songs found for genres: {', '.join(genres)}"
         
-        result = f"🎸 **Genre Playlist: {', '.join(genres)}** ({len(playlist)} songs)\n\n"
+        result = f" **Genre Playlist: {', '.join(genres)}** ({len(playlist)} songs)\n\n"
         for i, song in enumerate(playlist, 1):
             result += f"{i}. **{song['name']}** by {song['artists']}\n"
             result += f"   Genre: {song.get('genre', 'Unknown')} | "

@@ -98,10 +98,26 @@ Claude Desktop Integration
 2. Restart Claude Desktop
 <br>
 
-3. Use natural language commands
-- "Create a chill playlist with 10 songs"
-- "Find songs similar to Worldwide by Big Time Rush"
-- "Analyze the audio features of Bohemian Rhapsody"
+3. Below are examples the assistant understands.
+
+**Mood Playlist:**
+- Create a happy playlist of 30 minutes in the rap genre
+- Make a chill playlist with 10 songs (min popularity 60).
+
+**Similar Songs:**
+- Give me 7 songs similar to ‘Pillowtalk’ by ZAYN.
+- Find songs like ‘Worldwide’ by Big Time Rush.
+
+**Song analysis:**
+- Analyze the audio features of ‘Bohemian Rhapsody’ by Queen.
+
+**Genre playlist:**
+- Create a rock, pop playlist with 12 songs, diversity high
+
+**Dataset stats:**
+- Show me dataset stats
+- What are the top genres in this dataset
+
 
 ## Other MCP Clients
 Configure with:
